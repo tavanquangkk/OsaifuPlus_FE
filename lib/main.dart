@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_basic_01/core/theme/app_themes.dart';
 import 'package:flutter_basic_01/presentation/pages/startup_screen.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-void main() {
+Future<void> main() async {
+  await dotenv.load(fileName: ".env");
   runApp(const MyApp());
 }
 
@@ -13,9 +15,8 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Osaifu Plus',
-      theme: AppTheme.lightTheme, // 👈 ここでテーマを適用
-      // darkTheme: AppTheme.darkTheme, // (ダークモードも同様に定義可能)
-      home: StartupScreen(), // 最初の画面
+      theme: AppTheme.lightTheme,
+      home: StartupScreen(),
     );
   }
 }
