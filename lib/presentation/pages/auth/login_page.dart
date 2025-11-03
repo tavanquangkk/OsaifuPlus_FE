@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_basic_01/presentation/pages/auth/register_page.dart'; // 👈 [修正] RegisterPageをインポート
+import 'package:flutter_basic_01/data/api/auth_service.dart';
+import 'package:flutter_basic_01/presentation/pages/auth/register_page.dart';
 import 'package:flutter_basic_01/presentation/pages/home_page.dart';
 import 'package:flutter_basic_01/presentation/widgets/auth/auth_redirect_link.dart';
 import 'package:flutter_basic_01/presentation/widgets/others/wave_clipper.dart';
 import 'package:flutter_basic_01/presentation/widgets/shared/primary_gradient_button.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class LoginPage extends StatefulWidget {
-  // 👈 [修正] StatelessWidgetから変更（元コードではStatefulWidgetになっていたのでOK）
-  const LoginPage({super.key}); // 👈 [修正] key を追加
+  const LoginPage({super.key});
 
   @override
   State<StatefulWidget> createState() => _LoginPage();
@@ -17,6 +18,7 @@ class _LoginPage extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _secureStorage = FlutterSecureStorage();
 
   bool _isLoading = false;
 
@@ -35,21 +37,51 @@ class _LoginPage extends State<LoginPage> {
     setState(() {
       _isLoading = true;
     });
+
     try {
-      // --- ここでAPI通信（データ層の呼び出し）を実行 ---
-      // (ダミーの待機)
-      await Future.delayed(Duration(seconds: 2));
-      if (mounted) {
-        // ログイン成功時はHomePageに置き換える
-        Navigator.of(
-          context,
-        ).pushReplacement(MaterialPageRoute(builder: (context) => HomePage()));
+      final email = _emailController.text;
+      final password = _passwordController.text;
+
+      final response = await login(email, password);
+
+      if (response['status'] == 'success' && response['data'] != null) {
+        final data = response['data'];
+
+        // トークンをセキュアストレージに保存
+        await _secureStorage.write(
+          key: 'access_token',
+          value: data['accessToken'],
+        );
+        await _secureStorage.write(
+          key: 'refresh_token',
+          value: data['refreshToken'],
+        );
+        await _secureStorage.write(key: 'user_email', value: data['email']);
+        await _secureStorage.write(key: 'user_name', value: data['username']);
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('ログインに成功しました'),
+              backgroundColor: Colors.green,
+            ),
+          );
+
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (context) => HomePage()),
+          );
+        }
+      } else {
+        throw Exception(response['message'] ?? 'ログインに失敗しました');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text("ログインに失敗しました：$e")));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("ログインに失敗しました：$e"),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     } finally {
       if (mounted) {
@@ -64,7 +96,6 @@ class _LoginPage extends State<LoginPage> {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     return Scaffold(
-      // 👈 [UX改善] Stackで全体を囲み、ローディング表示を追加
       body: Stack(
         children: [
           Column(
@@ -81,13 +112,10 @@ class _LoginPage extends State<LoginPage> {
                   padding: const EdgeInsets.all(24.0),
                   child: Form(
                     key: _formKey,
-                    // 👈 [UX改善] リアルタイムバリデーション
                     autovalidateMode: AutovalidateMode.onUserInteraction,
                     child: Column(
-                      crossAxisAlignment:
-                          CrossAxisAlignment.start, // 👈 [修正] 左揃えに
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // 👈 [修正] テーマからスタイルを適用
                         Text("ログイン", style: textTheme.displayLarge),
                         SizedBox(height: 30),
 
@@ -115,34 +143,28 @@ class _LoginPage extends State<LoginPage> {
                         SizedBox(height: 8),
                         TextFormField(
                           controller: _passwordController,
-                          decoration: InputDecoration(
-                            hintText: "パスワード",
-                          ), // 👈 [修正]
-                          obscureText: true, // 👈 [修正] パスワードを隠す
-                          // keyboardType: TextInputType.emailAddress, // 👈 [修正] 削除
+                          decoration: InputDecoration(hintText: "パスワード"),
+                          obscureText: true,
                           validator: (value) {
                             if (value == null || value.isEmpty) {
-                              return 'パスワードを入力してください'; // 👈 [修正]
+                              return 'パスワードを入力してください';
                             }
                             if (value.length < 6) {
-                              return '6文字以上で入力してください'; // 👈 [修正] バリデーション強化
+                              return '6文字以上で入力してください';
                             }
                             return null;
                           },
                         ),
-                        // password
                         SizedBox(height: 30),
                         PrimaryGradientButton(
                           text: "ログイン",
                           onPressed: _isLoading ? null : _login,
                         ),
 
-                        // don't have a account , register
                         AuthRedirectLink(
                           promptText: "アカウントをお持ちでない方？",
                           linkText: "新規登録",
                           onPressed: () {
-                            // 👈 [修正] RegisterPage に遷移する
                             Navigator.of(context).push(
                               MaterialPageRoute(
                                 builder: (context) => RegisterPage(),
@@ -158,7 +180,6 @@ class _LoginPage extends State<LoginPage> {
             ],
           ),
 
-          // 👈 [UX改善] ローディングオーバーレイ
           if (_isLoading)
             Container(
               color: Colors.black.withOpacity(0.3),
