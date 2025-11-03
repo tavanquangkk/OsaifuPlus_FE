@@ -20,28 +20,58 @@ samples, guidance on mobile development, and a full API reference.
 フォルダー構成等
 lib/
  ├── main.dart
+ │
  ├── config/
- │    ├── router.dart        # 画面遷移（GoRouter など）
- │    └── di.dart            # 依存注入（gRPC Client など）
+ │   ├── router.dart        # 画面遷移 (GoRouterなど)
+ │   └── di.dart            # 依存注入 (API Client, Repositoryなど)
+ │
  ├── core/
- │    ├── constants/         # App名・色・定数
- │    ├── theme/             # ダーク/ライトなど
- │    └── utils/             # 共通関数
+ │   ├── constants/         # 色、スタイル、APIエンドポイントなどの定数
+ │   ├── theme/             # アプリのテーマ
+ │   └── utils/             # 共通関数（フォーマッターなど）
+ │
  ├── data/
- │    ├── models/            # データ構造（Protobuf生成クラス取得）
- │    ├── grpc/              # gRPC Client実装
- │    └── repositories/      # データ取得ロジック
+ │   ├── api/               # 👈 gRPCの代わりにAPI Serviceを配置
+ │   │   ├── api_client.dart    # (dio, httpなどのラッパー)
+ │   │   └── api_service.dart   # (GET /home, POST /expense など)
+ │   │
+ │   ├── models/            # 👈 ProtobufではなくJSONレスポンス用モデル
+ │   │   ├── home_response_model.dart # (json_serializableなど)
+ │   │   └── transaction_model.dart
+ │   │
+ │   └── repositories/      # 👈 Domain層への橋渡し
+ │       └── home_repository_impl.dart # (API Serviceを呼び出す)
+ │
  ├── domain/
- │    ├── entities/          # ビジネスルール（独立）
- │    └── usecases/          # UIが使うビジネス操作
+ │   ├── entities/          # 👈 UIが本当に使う「純粋な」データ
+ │   │   ├── asset.dart
+ │   │   └── transaction.dart
+ │   │
+ │   ├── repositories/      # 👈 抽象インターフェース (UI層はこれを参照)
+ │   │   └── home_repository.dart
+ │   │
+ │   └── usecases/          # 👈 ビジネスロジック
+ │       └── get_home_data_usecase.dart
+ │
  ├── presentation/
- │    ├── pages/             # ✅ まずここから作る！
- │    │    ├── home_page.dart
- │    │    ├── add_expense_page.dart
- │    │    └── expense_list_page.dart
- │    ├── widgets/           # 再利用UIパーツ
- │    └── state/             # Riverpod / Bloc / ChangeNotifierなど
- └── generated/              # 🔹Protobufから自動生成
+ │   ├── pages/             # ✅ ここから作る
+ │   │   └── home_page.dart   # (Scaffold, AppBar, Bodyを持つ)
+ │   │
+ │   ├── widgets/           # 👈 分割したウィジェット置き場
+ │   │   ├── home/            # (HomePage専用のウィジェット)
+ │   │   │   ├── header_summary_widget.dart
+ │   │   │   ├── expense_donut_chart_widget.dart
+ │   │   │   ├── category_grid_widget.dart
+ │   │   │   ├── asset_summary_card_widget.dart
+ │   │   │   └── recent_history_widget.dart
+ │   │   └── shared/          # (アプリ全体で再利用するウィジェット)
+ │   │       └── transaction_row_widget.dart
+ │   │
+ │   └── state/             # 状態管理 (Riverpod, Blocなど)
+ │       ├── home_provider.dart  # (Usecaseを呼び出し、状態をUIに渡す)
+ │       └── state_notifier.dart
+ │
+ └── generated/             # 👈 json_serializableの .g.dart ファイルなど
 
 
 ```
