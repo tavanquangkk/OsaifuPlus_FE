@@ -1,9 +1,11 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_basic_01/presentation/pages/auth/register.dart';
+import 'package:flutter_basic_01/presentation/pages/auth/register_page.dart';
 import 'package:flutter_basic_01/presentation/widgets/others/wave_clipper.dart';
 
 class StartupScreen extends StatelessWidget {
+  const StartupScreen({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -67,7 +69,7 @@ class StartupScreen extends StatelessWidget {
                   IconButton(
                     onPressed: () {
                       Navigator.of(context).push(
-                        MaterialPageRoute(builder: (context) => Register()),
+                        MaterialPageRoute(builder: (context) => RegisterPage()),
                       );
                     },
                     icon: Icon(
