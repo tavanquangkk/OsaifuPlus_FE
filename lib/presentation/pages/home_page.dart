@@ -1,7 +1,17 @@
+import 'dart:ffi';
+
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_basic_01/data/api/home_service.dart';
+import 'package:flutter_basic_01/presentation/pages/report_page.dart';
+import 'package:flutter_basic_01/presentation/widgets/home/add_transaction.dart';
+import 'package:flutter_basic_01/presentation/widgets/home/update_transaction.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_basic_01/presentation/pages/auth/login_page.dart';
 import 'package:flutter_basic_01/core/theme/app_colors.dart';
+import 'package:intl/intl.dart';
+
+final oCcy = NumberFormat("#,##0", "en_US");
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -13,14 +23,36 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   final _secureStorage = FlutterSecureStorage();
   String _userName = '';
-  double _totalBalance = 250000;
-  double _monthlyIncome = 350000;
-  double _monthlyExpense = 180000;
+  String _totalBalance = "";
+  int _monthlyIncome = 0;
+  int _monthlyExpense = 0;
+  String _thisMonth = "";
+  List _transactions = [];
+  List _monthSummaryIncome = [];
+  List _monthSummaryExpense = [];
 
   @override
   void initState() {
     super.initState();
     _loadUserData();
+    _fetchTransactions();
+    _getMonthlySumary();
+  }
+
+  Future<void> _getMonthlySumary() async {
+    final response = await getMonthlySeparatedSummary();
+    if (response != null) {
+      setState(() {
+        _monthlyIncome = response["data"]["income"][0]["amount"] as int;
+        _monthlyExpense = response["data"]["expense"][0]["amount"] as int;
+        _thisMonth = response["data"]["expense"][0]["month"].toString();
+      });
+      _monthSummaryIncome = response["data"]["income"];
+      _monthSummaryExpense = response["data"]["expense"];
+
+      print("??????");
+      print(response["data"]["expense"][0]["amount"]);
+    }
   }
 
   Future<void> _loadUserData() async {
@@ -37,6 +69,149 @@ class _HomePageState extends State<HomePage> {
         context,
       ).pushReplacement(MaterialPageRoute(builder: (context) => LoginPage()));
     }
+  }
+
+  Future<void> _fetchTransactions() async {
+    final res = await getAllTransactions();
+    final data = res["data"] ?? [];
+
+    setState(() {
+      _transactions = data;
+    });
+    _getMonthlySumary();
+  }
+
+  Future<void> _deleteTransaction(String id) async {
+    await deleteTransactions(id);
+    _fetchTransactions();
+  }
+
+  Future<void> _createTransaction(dynamic params) async {
+    final body = {
+      "type": params["type"] ?? "test",
+      "category": params["category"] ?? "tess",
+      "note": params["note"] ?? "tesss",
+      "amount": params["amount"] ?? 300,
+    };
+    final res = await addTransactions(body);
+    print("success to add >>>> i am at homepage!!!!");
+    _fetchTransactions();
+  }
+
+  Future<void> _updateTransaction(String id, dynamic params) async {
+    final body = {
+      "type": params["type"],
+      "category": params["category"],
+      "note": params["note"],
+      "amount": params["amount"],
+    };
+    final res = await updateTransactions(id, body);
+    print("success to update >>>> i am at homepage!!!!");
+    _fetchTransactions();
+  }
+
+  IconData _convertIcon(String category) {
+    final key = category.trim().toLowerCase();
+
+    const iconMap = {
+      // -------------- 食費・生活系 --------------
+      "食費": Icons.restaurant,
+      "外食": Icons.restaurant,
+      "自炊": Icons.restaurant,
+      "food": Icons.restaurant,
+      "meal": Icons.restaurant,
+
+      "飲み物": Icons.local_cafe,
+      "カフェ": Icons.local_cafe,
+      "drink": Icons.local_cafe,
+      "cafe": Icons.local_cafe,
+
+      "日用品": Icons.shopping_bag,
+      "生活用品": Icons.shopping_bag,
+      "daily": Icons.shopping_bag,
+
+      "買い物": Icons.shopping_cart,
+      "ショッピング": Icons.shopping_cart,
+      "shopping": Icons.shopping_cart,
+
+      // -------------- 交通 --------------
+      "交通": Icons.train,
+      "電車": Icons.train,
+      "バス": Icons.train,
+      "タクシー": Icons.directions_car,
+      "transport": Icons.train,
+      "taxi": Icons.directions_car,
+
+      // -------------- 家・住居 --------------
+      "家賃": Icons.home,
+      "住宅": Icons.home,
+      "住居": Icons.home,
+      "rent": Icons.home,
+
+      "光熱費": Icons.lightbulb,
+      "電気": Icons.lightbulb,
+      "ガス": Icons.local_fire_department,
+      "水道": Icons.water_drop,
+
+      // -------------- 通信 --------------
+      "通信費": Icons.wifi,
+      "スマホ": Icons.smartphone,
+      "internet": Icons.wifi,
+      "wifi": Icons.wifi,
+
+      // -------------- 医療・美容 --------------
+      "医療": Icons.health_and_safety,
+      "病院": Icons.local_hospital,
+      "health": Icons.health_and_safety,
+
+      "美容": Icons.brush,
+      "ビューティー": Icons.brush,
+      "beauty": Icons.brush,
+
+      // -------------- 娯楽・エンタメ --------------
+      "娯楽": Icons.movie,
+      "映画": Icons.movie,
+      "entertainment": Icons.movie,
+
+      "ゲーム": Icons.sports_esports,
+      "game": Icons.sports_esports,
+
+      // -------------- 教育 --------------
+      "教育": Icons.school,
+      "学習": Icons.school,
+      "study": Icons.school,
+      "school": Icons.school,
+
+      // -------------- 収入（Income） --------------
+      "給料": Icons.work,
+      "給与": Icons.work,
+      "salary": Icons.work,
+      "income": Icons.work,
+
+      "ボーナス": Icons.card_giftcard,
+      "bonus": Icons.card_giftcard,
+
+      "副業": Icons.work_history,
+      "sidejob": Icons.work_history,
+
+      // -------------- その他 --------------
+      "旅行": Icons.flight,
+      "travel": Icons.flight,
+
+      "ペット": Icons.pets,
+      "pet": Icons.pets,
+
+      "貯金": Icons.savings,
+      "saving": Icons.savings,
+
+      "投資": Icons.trending_up,
+      "investment": Icons.trending_up,
+
+      "その他": Icons.more_horiz,
+      "other": Icons.more_horiz,
+    };
+
+    return iconMap[key] ?? Icons.receipt; // 存在しない場合のデフォルト
   }
 
   @override
@@ -59,6 +234,9 @@ class _HomePageState extends State<HomePage> {
               if (value == 'logout') {
                 _logout();
               }
+              if (value == 'reload') {
+                _fetchTransactions();
+              }
             },
             itemBuilder: (context) => [
               PopupMenuItem(
@@ -68,6 +246,19 @@ class _HomePageState extends State<HomePage> {
                     Icon(Icons.logout, color: Colors.red),
                     SizedBox(width: 8),
                     Text('ログアウト'),
+                  ],
+                ),
+              ),
+              PopupMenuItem(
+                value: 'reload',
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.read_more,
+                      color: const Color.fromARGB(255, 3, 250, 11),
+                    ),
+                    SizedBox(width: 8),
+                    Text('リロード'),
                   ],
                 ),
               ),
@@ -82,7 +273,7 @@ class _HomePageState extends State<HomePage> {
           children: [
             // ユーザー挨拶
             Container(
-              padding: EdgeInsets.all(20),
+              padding: EdgeInsets.all(10),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [AppColors.primary, AppColors.primaryLight],
@@ -119,47 +310,7 @@ class _HomePageState extends State<HomePage> {
 
             SizedBox(height: 24),
 
-            // 残高カード
-            Card(
-              elevation: 6,
-              shadowColor: AppColors.primary.withOpacity(0.2),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Container(
-                padding: EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
-                  gradient: LinearGradient(
-                    colors: [Colors.orange[50]!, Colors.white],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                ),
-                child: Column(
-                  children: [
-                    Text(
-                      '総残高',
-                      style: textTheme.titleMedium?.copyWith(
-                        color: Colors.grey[600],
-                      ),
-                    ),
-                    SizedBox(height: 12),
-                    Text(
-                      '¥${_totalBalance.toStringAsFixed(0)}',
-                      style: textTheme.headlineMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.primary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            SizedBox(height: 16),
-
-            // 今月の収支
+            // 今月の収支 (API開発中)
             Row(
               children: [
                 Expanded(
@@ -195,7 +346,7 @@ class _HomePageState extends State<HomePage> {
                           ),
                           SizedBox(height: 12),
                           Text(
-                            '今月の収入',
+                            '今月の収入($_thisMonth)',
                             style: textTheme.bodyMedium?.copyWith(
                               color: Colors.grey[600],
                               fontSize: 13,
@@ -203,7 +354,7 @@ class _HomePageState extends State<HomePage> {
                           ),
                           SizedBox(height: 6),
                           Text(
-                            '¥${_monthlyIncome.toStringAsFixed(0)}',
+                            '¥${oCcy.format(_monthlyIncome)}',
                             style: textTheme.titleLarge?.copyWith(
                               color: Colors.green[600],
                               fontWeight: FontWeight.bold,
@@ -249,7 +400,7 @@ class _HomePageState extends State<HomePage> {
                           ),
                           SizedBox(height: 12),
                           Text(
-                            '今月の支出',
+                            '今月の支出($_thisMonth)',
                             style: textTheme.bodyMedium?.copyWith(
                               color: Colors.grey[600],
                               fontSize: 13,
@@ -257,7 +408,7 @@ class _HomePageState extends State<HomePage> {
                           ),
                           SizedBox(height: 6),
                           Text(
-                            '¥${_monthlyExpense.toStringAsFixed(0)}',
+                            '¥${oCcy.format(_monthlyExpense)}',
                             style: textTheme.titleLarge?.copyWith(
                               color: Colors.red[600],
                               fontWeight: FontWeight.bold,
@@ -283,46 +434,136 @@ class _HomePageState extends State<HomePage> {
             ),
             SizedBox(height: 12),
 
-            Card(
-              elevation: 4,
-              shadowColor: AppColors.primary.withOpacity(0.1),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Column(
-                children: [
-                  _buildTransactionItem(
-                    '給与',
-                    '¥350,000',
-                    Icons.work,
-                    Colors.green,
-                    '2024/11/01',
+            Container(
+              height: 300, // 高さを固定（必要に応じて調整）
+              child: Card(
+                elevation: 4,
+                shadowColor: AppColors.primary.withOpacity(0.1),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: SingleChildScrollView(
+                  child: Column(
+                    children: _transactions.reversed.map((e) {
+                      return InkWell(
+                        onTap: () {
+                          showDialog(
+                            context: context,
+                            builder: (BuildContext context) {
+                              return AlertDialog(
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                title: const Text(
+                                  "取引詳細",
+                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                                content: SizedBox(
+                                  width: double.minPositive,
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      _buildDetailRow(
+                                        "カテゴリ",
+                                        "${e["category"]}",
+                                      ),
+                                      _buildDetailRow("タイプ", "${e["type"]}"),
+                                      _buildDetailRow("メモ", "${e["note"]}"),
+                                      const Divider(height: 24),
+
+                                      // 金額
+                                      Center(
+                                        child: Text(
+                                          "${e["type"] == "EXPENSE" ? "-" : "+"}¥${e["amount"]}",
+                                          style: TextStyle(
+                                            fontSize: 24,
+                                            fontWeight: FontWeight.bold,
+                                            color: e["type"] == "EXPENSE"
+                                                ? Colors.red
+                                                : Colors.green,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                actions: [
+                                  // 編集
+                                  TextButton(
+                                    onPressed: () async {
+                                      final result =
+                                          await showDialog<
+                                            Map<String, dynamic>
+                                          >(
+                                            context: context,
+                                            barrierDismissible: true,
+                                            builder: (_) => UpdateTransaction(
+                                              transactionType: "EXPENSE",
+                                              category: e["category"],
+                                              note: e["note"],
+                                              amount: e["amount"],
+                                            ),
+                                          );
+
+                                      if (result != null) {
+                                        final id = e["id"];
+                                        // APIに送信
+                                        await _updateTransaction(id, result);
+                                        Navigator.pop(context);
+                                      }
+                                    },
+                                    child: const Text("編集"),
+                                  ),
+                                  TextButton(
+                                    onPressed: () {
+                                      showDialog(
+                                        context: context,
+                                        builder: (context) {
+                                          return CupertinoAlertDialog(
+                                            title: Text("削除しますか？"),
+                                            content: Text("復元できませんのでご注意ください！"),
+                                            actions: [
+                                              CupertinoDialogAction(
+                                                child: Text('キャンセル'),
+                                                isDestructiveAction: true,
+                                                onPressed: () =>
+                                                    Navigator.pop(context),
+                                              ),
+                                              CupertinoDialogAction(
+                                                child: Text('削除'),
+                                                onPressed: () async {
+                                                  //delete logic
+                                                  final id = e["id"];
+                                                  await _deleteTransaction(id);
+                                                  Navigator.pop(context);
+                                                  Navigator.pop(context);
+                                                },
+                                              ),
+                                            ],
+                                          );
+                                        },
+                                      );
+                                    },
+                                    child: const Text("削除"),
+                                  ),
+                                ],
+                              );
+                            },
+                          );
+                        },
+                        child: _buildTransactionItem(
+                          e["category"],
+                          "${e["type"] == "EXPENSE" ? "-" : "+"}¥${e["amount"]}",
+                          _convertIcon(e["category"]),
+                          e["type"] == "EXPENSE" ? Colors.red : Colors.green,
+                          e["created_at"].toString().split("T")[0],
+                        ),
+                      );
+                    }).toList(),
                   ),
-                  Divider(height: 1),
-                  _buildTransactionItem(
-                    '食費',
-                    '-¥8,500',
-                    Icons.restaurant,
-                    Colors.red,
-                    '2024/11/02',
-                  ),
-                  Divider(height: 1),
-                  _buildTransactionItem(
-                    '交通費',
-                    '-¥2,300',
-                    Icons.train,
-                    Colors.red,
-                    '2024/11/02',
-                  ),
-                  Divider(height: 1),
-                  _buildTransactionItem(
-                    '電気代',
-                    '-¥12,800',
-                    Icons.bolt,
-                    Colors.red,
-                    '2024/11/01',
-                  ),
-                ],
+                ),
               ),
             ),
 
@@ -341,13 +582,21 @@ class _HomePageState extends State<HomePage> {
               children: [
                 Expanded(
                   child: ElevatedButton.icon(
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('収入追加機能は準備中です'),
-                          backgroundColor: AppColors.primary,
-                        ),
+                    onPressed: () async {
+                      final result = await showDialog<Map<String, dynamic>>(
+                        context: context,
+                        barrierDismissible: true,
+                        builder: (_) =>
+                            AddTransaction(transactionType: "INCOME"),
                       );
+
+                      if (result != null) {
+                        // APIに送信
+                        await _createTransaction(result);
+
+                        // 最新のトランザクションを取得
+                        _fetchTransactions();
+                      }
                     },
                     icon: Icon(Icons.add, color: Colors.white),
                     label: Text('収入追加', style: TextStyle(color: Colors.white)),
@@ -366,13 +615,21 @@ class _HomePageState extends State<HomePage> {
                 SizedBox(width: 16),
                 Expanded(
                   child: ElevatedButton.icon(
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('支出追加機能は準備中です'),
-                          backgroundColor: AppColors.primary,
-                        ),
+                    onPressed: () async {
+                      final result = await showDialog<Map<String, dynamic>>(
+                        context: context,
+                        barrierDismissible: true,
+                        builder: (_) =>
+                            AddTransaction(transactionType: "EXPENSE"),
                       );
+
+                      if (result != null) {
+                        // APIに送信
+                        await _createTransaction(result);
+
+                        // 最新のトランザクションを取得
+                        _fetchTransactions();
+                      }
                     },
                     icon: Icon(Icons.remove, color: Colors.white),
                     label: Text('支出追加', style: TextStyle(color: Colors.white)),
@@ -398,10 +655,15 @@ class _HomePageState extends State<HomePage> {
                 Expanded(
                   child: OutlinedButton.icon(
                     onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('レポート機能は準備中です'),
-                          backgroundColor: AppColors.primary,
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) {
+                            return ReportPage(
+                              monthSummaryIncome: _monthSummaryIncome,
+                              monthSummaryExpense: _monthSummaryExpense,
+                            );
+                          },
                         ),
                       );
                     },
@@ -417,29 +679,8 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ),
                 ),
-                SizedBox(width: 16),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('設定機能は準備中です'),
-                          backgroundColor: AppColors.primary,
-                        ),
-                      );
-                    },
-                    icon: Icon(Icons.settings),
-                    label: Text('設定'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.primary,
-                      side: BorderSide(color: AppColors.primary, width: 2),
-                      padding: EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                  ),
-                ),
+
+                // test block
               ],
             ),
           ],
@@ -475,4 +716,23 @@ class _HomePageState extends State<HomePage> {
       ),
     );
   }
+}
+
+Widget _buildDetailRow(String label, String value) {
+  return Padding(
+    padding: const EdgeInsets.symmetric(vertical: 4),
+    child: Row(
+      children: [
+        Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            value,
+            textAlign: TextAlign.right,
+            style: const TextStyle(color: Colors.black87),
+          ),
+        ),
+      ],
+    ),
+  );
 }

@@ -17,6 +17,7 @@ class MyApp extends StatelessWidget {
       title: 'Osaifu Plus',
       theme: AppTheme.lightTheme,
       home: StartupScreen(),
+      debugShowCheckedModeBanner: false,
     );
   }
 }

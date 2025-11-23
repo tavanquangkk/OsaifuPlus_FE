@@ -1,21 +1,21 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
-AndroidOptions _getAndroidOptions() =>
-    const AndroidOptions(encryptedSharedPreferences: true);
-final storage = FlutterSecureStorage(aOptions: _getAndroidOptions());
+class TokenStorage {
+  final storage = FlutterSecureStorage();
 
-Future<void> saveAccessToken(String token) async {
-  await storage.write(key: "accessToken", value: token);
-}
+  Future<void> saveAccessToken(String token) async {
+    await storage.write(key: "accessToken", value: token);
+  }
 
-Future<void> readAccessToken(String token) async {
-  await storage.read(key: "accessToken");
-}
+  Future<String?> readAccessToken() async {
+    return await storage.read(key: "accessToken");
+  }
 
-Future<void> saveRfreshAccessToken(String token) async {
-  await storage.write(key: "refreshAccessToken", value: token);
-}
+  Future<void> saveRfreshAccessToken(String token) async {
+    await storage.write(key: "refreshAccessToken", value: token);
+  }
 
-Future<void> readRfreshAccessToken(String token) async {
-  await storage.read(key: "refreshAccessToken");
+  Future<String?> readRfreshAccessToken() async {
+    return await storage.read(key: "refreshAccessToken");
+  }
 }
