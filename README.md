@@ -1,60 +1,63 @@
-# flutter_basic_01
+# OsaifuPlus Frontend
 
-A new Flutter project.
+家計簿アプリ「OsaifuPlus」のフロントエンド（Flutter）プロジェクトです。
 
-## Getting Started
+## 画面一覧
 
-This project is a starting point for a Flutter application.
+<img src="./app_screen/app_screen.png" />
 
-A few resources to get you started if this is your first Flutter project:
+## 機能一覧
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+現在の実装状況に基づいた機能一覧です。
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+### 1️⃣ ユーザー認証
+*   **ログイン／サインアップ**: メールアドレスとパスワードでアカウントを作成・ログインできます。
+*   **ログアウト**: 安全にログアウトし、トークンを破棄します。
 
+### 2️⃣ ホーム画面（ダッシュボード）
+*   **今月の収支表示**: 今月の収入・支出の合計金額を一目で確認できます。
+*   **最近の取引**: 直近の取引履歴をリスト表示します。
+*   **クイックアクション**: ワンタップで「収入追加」「支出追加」ダイアログを開けます。
+
+### 3️⃣ 取引管理
+*   **追加**: 金額、カテゴリ、メモを入力して取引を記録します。
+*   **編集**: 既存の取引内容（金額、カテゴリ、メモ）を修正できます。
+*   **削除**: 不要な取引データを削除できます。
+
+### 4️⃣ レポート（簡易版）
+*   **月次履歴**: 過去の月ごとの収入・支出の合計を確認できます。
+
+## 技術スタック
+
+*   **Framework**: Flutter
+*   **Language**: Dart
+*   **State Management**: `setState` (Basic)
+*   **Packages**:
+    *   `http`: API通信
+    *   `flutter_secure_storage`: JWTトークンの安全な保存
+    *   `flutter_dotenv`: 環境変数管理 (.env)
+    *   `intl`: 数値や日付のフォーマット
+
+## 動かし方
+
+### 1. 前提条件
+*   Flutter SDK がインストールされていること
+*   バックエンド (OsaifuPlus_be) が起動していること
+
+### 2. 環境変数の設定
+プロジェクトルートに `.env` ファイルを作成し、APIのURLを設定します。
+
+```env
+# ローカル実行の例 (Android Emulatorの場合は 10.0.2.2)
+BASE_API_URL=http://localhost:8080/api/v1
 ```
 
+### 3. 依存関係のインストール
+```bash
+flutter pub get
 ```
 
-1️⃣ ユーザー関連
-
-ログイン／サインアップ画面
-→ メール・パスワードで認証
-
-プロフィール編集画面
-→ 名前やメールアドレスの変更
-
-2️⃣ カテゴリ管理
-
-カテゴリ一覧画面
-→ 食費、交通費などの一覧
-
-カテゴリ追加／編集／削除画面
-
-3️⃣ 取引管理
-
-取引一覧画面
-→ 月ごと・カテゴリごとに絞り込み
-
-取引追加／編集／削除画面
-→ 日付、金額、カテゴリ、メモなどを入力
-
-残高表示
-→ 総残高やカテゴリごとの残高
-
-4️⃣ 予算管理
-
-月予算一覧画面
-→ カテゴリ別の月予算表示
-
-予算追加／編集／削除画面
-
-5️⃣ レポート・分析（簡易版）
-
-月次収支グラフ
-→ 円グラフで支出割合、折れ線グラフで収支推移
-
-カテゴリ別支出比率
+### 4. アプリの起動
+```bash
+flutter run
+```
